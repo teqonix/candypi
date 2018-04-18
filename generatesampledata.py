@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 """
 Spyder Editor
 
@@ -48,11 +48,13 @@ def connectToDB():
 #syntax: STR_TO_DATE('2018,01,01, 17:23:12', '%Y,%m,%d,%T')
      
 if __name__ == "__main__":
-    exampleData = createSampleData(numberOfDays = 75, maxEntriesPerDay = 150, startDateInt = 20180130)
+    exampleData = createSampleData(numberOfDays = 75, maxEntriesPerDay = 800, startDateInt = 20180501)
     
     mysql = connectToDB()
     
     with mysql.cursor() as cursor:
+        sql = "TRUNCATE TABLE candydb.candycounts"
+        cursor.execute(sql)
         for exampleRow in (exampleData):    
             sql = exampleRow["SQL Statement"]
 #            print(sql)
