@@ -48,7 +48,7 @@ def connectToDB():
 #syntax: STR_TO_DATE('2018,01,01, 17:23:12', '%Y,%m,%d,%T')
      
 if __name__ == "__main__":
-    exampleData = createSampleData(numberOfDays = 75, maxEntriesPerDay = 800, startDateInt = 20180501)
+    exampleData = createSampleData(numberOfDays = 45, maxEntriesPerDay = 800, startDateInt = 20180501)
     
     mysql = connectToDB()
     
