@@ -8,7 +8,7 @@ FROM candydb.candycounts cc
         INNER JOIN candydb.date_dimension dd
                 ON cc.candyconsumption_date_ik = dd.date_id
 WHERE 1=1
-    AND cc.candyconsumption_date_ik BETWEEN STR_TO_DATE('20180501','%Y%m%d') AND STR_TO_DATE('20180531','%Y%m%d')
+    AND cc.candyconsumption_date_ik BETWEEN STR_TO_DATE('20180622','%Y%m%d') AND STR_TO_DATE('20180622','%Y%m%d')
     AND HOUR(cc.logged_date) BETWEEN 6 AND 18
 GROUP BY dd.day_of_week
         , dd.weekend
@@ -45,6 +45,19 @@ FROM derp d
         ) td
 		 ON HOUR(d.logged_date) = td.HOUR
         
+;
+
+
+SELECT 
+	SUM(cc.candycount_nb) AS candyconsumed_nb
+    ,CONCAT(dd.month, ' ', dd.year, ' - Wk ', dd.week_starting_monday) AS week
+FROM candydb.candycounts cc
+	INNER JOIN candydb.date_dimension dd
+		ON cc.candyconsumption_date_ik = dd.date_id
+WHERE 1=1
+	AND cc.logged_date >= DATE_ADD(CURRENT_DATE, INTERVAL -45 DAY)
+GROUP BY CONCAT(dd.month, ' ', dd.year, ' ', dd.week_starting_monday)
+ORDER BY cc.logged_date ASC
 ;
 
 
