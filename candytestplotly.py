@@ -9,17 +9,17 @@ import plotly.graph_objs as go
 class generateCandyPlots:
     
 #    def __init__(self):       
-    def createCandyWeeklyBarChart(self, weeks_looking_back):
+    
+    def fetchHourlyTrend(self):
         sqlstatement = """SELECT 
-                    	SUM(cc.candycount_nb) AS candyconsumed_nb
-                        ,CONCAT(dd.year, ' - Wk ', dd.week_starting_monday) AS week
-                    FROM candydb.candycounts cc
-                    	INNER JOIN candydb.date_dimension dd
-                    		ON cc.candyconsumption_date_ik = dd.date_id
-                    WHERE 1=1
-                    	AND cc.logged_date BETWEEN DATE_ADD(CURRENT_DATE, INTERVAL -""" + str(weeks_looking_back) + """ WEEK) AND CURRENT_DATE
-                    GROUP BY CONCAT(dd.year, ' ', dd.week_starting_monday)
-                    ORDER BY cc.logged_date ASC
+                            CASE WHEN SUM(candycount_nb) IS NULL THEN 0 ELSE SUM(candycount_nb) END AS currentHourCandyCount
+                            ,STR_TO_DATE(CONCAT(CAST(CURRENT_DATE AS CHAR(12)),' ',CAST(HOUR(CURRENT_TIME) AS CHAR),':00:00'),'%Y-%m-%d %T') AS startOfCurrentHour
+                            ,CURRENT_TIMESTAMP AS queryCurrentTime
+                        FROM candydb.candycounts cc
+                        WHERE 1=1
+                        	AND cc.logged_date BETWEEN 
+                                STR_TO_DATE(CONCAT(CAST(CURRENT_DATE AS CHAR(12)),' ',CAST(HOUR(CURRENT_TIME) AS CHAR),':00:00'),'%Y-%m-%d %T')
+                                AND CURRENT_TIMESTAMP
                     ;"""
                     
         try:
@@ -30,44 +30,108 @@ class generateCandyPlots:
             
         with db.cursor() as cursor:
             cursor.execute(sqlstatement)
-            weeklyCandyData = cursor.fetchall()                
-    
-        x_axis = []
-        y_axis = []
+            currentHourCandyData = cursor.fetchall()
         
-        for x in weeklyCandyData:
-#            print(x["week"])
-            x_axis.append(x["week"])
+        sqlstatement = """SELECT 
+                        	CASE WHEN SUM(candycount_nb) IS NULL THEN 0 ELSE SUM(candycount_nb) END AS lagHourCandyCount
+                        	,ADDTIME(STR_TO_DATE(CONCAT(CAST(CURRENT_DATE AS CHAR(12)),' ',CAST(HOUR(CURRENT_TIME) AS CHAR),':00:00'),'%Y-%m-%d %T'),'-01:00:00')AS startOfLagHour
+                        	,STR_TO_DATE(CONCAT(CAST(CURRENT_DATE AS CHAR(12)),' ',CAST(HOUR(CURRENT_TIME) AS CHAR),':00:00'),'%Y-%m-%d %T') AS endOfLagHour
+                        FROM candydb.candycounts cc
+                        WHERE 1=1
+                        	AND cc.logged_date BETWEEN 
+                        		ADDTIME(STR_TO_DATE(CONCAT(CAST(CURRENT_DATE AS CHAR(12)),' ',CAST(HOUR(CURRENT_TIME) AS CHAR),':00:00'),'%Y-%m-%d %T'),'-01:00:00')
+                        		AND STR_TO_DATE(CONCAT(CAST(CURRENT_DATE AS CHAR(12)),' ',CAST(HOUR(CURRENT_TIME) AS CHAR),':00:00'),'%Y-%m-%d %T')
+         ;"""
         
-        for y in weeklyCandyData:
-            y_axis.append(y["candyconsumed_nb"])
+        with db.cursor() as cursor:
+            cursor.execute(sqlstatement)
+            lastHourCandyData = cursor.fetchall()
 
+        previousHourCandyAmt = lastHourCandyData[0].get('lagHourCandyCount')
+        currentHourCandyAmt = currentHourCandyData[0].get('currentHourCandyCount')
+        hourlyTrend = ""
+        
+        if (previousHourCandyAmt != 0 and currentHourCandyAmt != 0):
+            lagHourCandyRatio = (currentHourCandyAmt / previousHourCandyAmt)
+            if (lagHourCandyRatio >= 0 and lagHourCandyRatio < 0.7):
+                hourlyTrend = "Down"
+            if (lagHourCandyRatio >= 0.7 and lagHourCandyRatio < 1.1):
+                hourlyTrend = "Same"
+            if (lagHourCandyRatio > 1.1):
+                hourlyTrend = "Up"                
+        elif (previousHourCandyAmt != 0 and currentHourCandyAmt == 0):
+            hourlyTrend = "Down"
+        elif (previousHourCandyAmt == 0 and currentHourCandyAmt != 0):
+            hourlyTrend = "Up"
 
-        weeklyCandyBar = [go.Bar(
-                    x=x_axis,
-                    y=y_axis
-            )]
+        db.close()
+
+        return {'Hourly Trend Ratio': lagHourCandyRatio
+                , 'Hourly Trend': hourlyTrend
+                , 'Current Hour Candy Count': currentHourCandyAmt
+                , 'Lag Hour Candy Count': previousHourCandyAmt}
     
-        layout = go.Layout(
-            title='Past ' + str(weeks_looking_back) + ' Weeks of Candy Usage',
-            yaxis=dict(
-                title='Pieces of Candy',
-                titlefont=dict(
-                    size=16,
-                    color='rgb(107, 107, 107)'
-                ),
-            )
-        )
-                
-        weeklyCandyBarChart = go.Figure(data=weeklyCandyBar, layout=layout)
     
-        return weeklyCandyBarChart
-    
+    def fetchDailyTrend(self):
+        sqlstatement = """SELECT 
+                            SUM(candycount_nb) AS currentDayCandyCount
+                            ,CURRENT_DATE AS startOfCurrentDay
+                            ,CURRENT_TIMESTAMP AS queryCurrentTime
+                        FROM candydb.candycounts cc
+                        WHERE 1=1
+                        	AND cc.logged_date BETWEEN CURRENT_DATE AND CURRENT_TIMESTAMP
+                    ;"""
+                    
+        try:
+            dbconnection = mysqlcandydb
+            db = dbconnection.candydb.connectToDB()
+        except Exception as e:
+            logging.exception("Error connecting to mySQL instance: " + str(e))
+            
+        with db.cursor() as cursor:
+            cursor.execute(sqlstatement)
+            currentDayCandyData = cursor.fetchall()
+        
+        sqlstatement = """SELECT 
+                            SUM(candycount_nb) AS lagDayCandyCount
+                            ,ADDDATE(CURRENT_DATE, INTERVAL -1 DAY) AS startOfPreviousDay
+                            ,ADDDATE(CURRENT_TIMESTAMP, INTERVAL -1 DAY) AS endOfPreviousDayTrend
+                        FROM candydb.candycounts cc
+                        WHERE 1=1
+                        	AND cc.logged_date BETWEEN ADDDATE(CURRENT_DATE, INTERVAL -1 DAY) AND ADDDATE(CURRENT_TIMESTAMP, INTERVAL -1 DAY)
+                        """
+        
+        with db.cursor() as cursor:
+            cursor.execute(sqlstatement)
+            lastDayCandyData = cursor.fetchall()
+
+        previousDayCandyAmt = lastDayCandyData[0].get('lagDayCandyCount')
+        currentDayCandyAmt = currentDayCandyData[0].get('currentDayCandyCount')
+        hourlyTrend = ""
+        
+        if (previousDayCandyAmt != 0 and currentDayCandyAmt != 0):
+            lagDayCandyRatio = (currentDayCandyAmt / previousDayCandyAmt)
+            if (lagDayCandyRatio >= 0 and lagDayCandyRatio < 0.7):
+                hourlyTrend = "Down"
+            if (lagDayCandyRatio >= 0.7 and lagDayCandyRatio < 1.1):
+                hourlyTrend = "Same"
+            if (lagDayCandyRatio > 1.1):
+                hourlyTrend = "Up"                
+        elif (previousDayCandyAmt != 0 and currentDayCandyAmt == 0):
+            hourlyTrend = "Down"
+        elif (previousDayCandyAmt == 0 and currentDayCandyAmt != 0):
+            hourlyTrend = "Up"
+
+        db.close()
+        
+        return {'Daily Trend Ratio': lagDayCandyRatio
+                , 'Daily Trend': hourlyTrend
+                , 'Current Day Candy Count': currentDayCandyAmt
+                , 'Lag Day Candy Count': previousDayCandyAmt}        
+
     
     def createCandyHeatmap(self, date_from, date_to, start_hour, end_hour):
         try:
-
-            date_difference = date_to - date_from
             
             if start_hour < 0 and start_hour > 23:
                 raise
@@ -257,4 +321,58 @@ class generateCandyPlots:
     def __exit__(self, exc_type, exc_value, traceback):
         self.db.close()
         
+    def createCandyWeeklyBarChart(self, weeks_looking_back):
+        sqlstatement = """SELECT 
+                    	SUM(cc.candycount_nb) AS candyconsumed_nb
+                        ,CONCAT(dd.year, ' - Wk ', dd.week_starting_monday) AS week
+                    FROM candydb.candycounts cc
+                    	INNER JOIN candydb.date_dimension dd
+                    		ON cc.candyconsumption_date_ik = dd.date_id
+                    WHERE 1=1
+                    	AND cc.logged_date BETWEEN DATE_ADD(CURRENT_DATE, INTERVAL -""" + str(weeks_looking_back) + """ WEEK) AND CURRENT_DATE
+                    GROUP BY CONCAT(dd.year, ' ', dd.week_starting_monday)
+                    ORDER BY cc.logged_date ASC
+                    ;"""
+                    
+        try:
+            dbconnection = mysqlcandydb
+            db = dbconnection.candydb.connectToDB()
+        except Exception as e:
+            logging.exception("Error connecting to mySQL instance: " + str(e))
+            
+        with db.cursor() as cursor:
+            cursor.execute(sqlstatement)
+            weeklyCandyData = cursor.fetchall()                
+    
+        x_axis = []
+        y_axis = []
         
+        for x in weeklyCandyData:
+#            print(x["week"])
+            x_axis.append(x["week"])
+        
+        for y in weeklyCandyData:
+            y_axis.append(y["candyconsumed_nb"])
+
+
+        weeklyCandyBar = [go.Bar(
+                    x=x_axis,
+                    y=y_axis
+            )]
+    
+        layout = go.Layout(
+            title='Past ' + str(weeks_looking_back) + ' Weeks of Candy Usage',
+            yaxis=dict(
+                title='Pieces of Candy',
+                titlefont=dict(
+                    size=16,
+                    color='rgb(107, 107, 107)'
+                ),
+            )
+        )
+                
+        weeklyCandyBarChart = go.Figure(data=weeklyCandyBar, layout=layout)
+        
+        db.close()
+        
+        return weeklyCandyBarChart        

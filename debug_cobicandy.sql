@@ -50,14 +50,58 @@ FROM derp d
 
 SELECT 
 	SUM(cc.candycount_nb) AS candyconsumed_nb
-    ,CONCAT(dd.month, ' ', dd.year, ' - Wk ', dd.week_starting_monday) AS week
+    ,CONCAT(dd.year, ' - Wk ', dd.week_starting_monday) AS week
 FROM candydb.candycounts cc
 	INNER JOIN candydb.date_dimension dd
 		ON cc.candyconsumption_date_ik = dd.date_id
 WHERE 1=1
-	AND cc.logged_date >= DATE_ADD(CURRENT_DATE, INTERVAL -45 DAY)
-GROUP BY CONCAT(dd.month, ' ', dd.year, ' ', dd.week_starting_monday)
+	AND cc.logged_date BETWEEN DATE_ADD(CURRENT_DATE, INTERVAL -4 WEEK) AND CURRENT_DATE
+GROUP BY CONCAT(dd.year, ' ', dd.week_starting_monday)
 ORDER BY cc.logged_date ASC
 ;
 
 
+SELECT 
+    SUM(candycount_nb) AS currentDayCandyCount
+    ,CURRENT_DATE AS startOfCurrentDay
+    ,CURRENT_TIMESTAMP AS queryCurrentTime
+FROM candydb.candycounts cc
+WHERE 1=1
+	AND cc.logged_date BETWEEN CURRENT_DATE AND CURRENT_TIMESTAMP
+ORDER BY logged_date DESC
+;
+
+SELECT 
+    SUM(candycount_nb) AS previousDayCandyCount
+    ,ADDDATE(CURRENT_DATE, INTERVAL -1 DAY) AS startOfPreviousDay
+    ,CURRENT_DATE AS endOfPreviousDay
+FROM candydb.candycounts cc
+WHERE 1=1
+	AND cc.logged_date BETWEEN ADDDATE(CURRENT_DATE, INTERVAL -1 DAY) AND CURRENT_DATE
+ORDER BY logged_date DESC
+;
+
+SELECT 
+	STR_TO_DATE(CONCAT(CAST(CURRENT_DATE AS CHAR(12)),' ',CAST(HOUR(CURRENT_TIME) AS CHAR),':00:00'),'%Y-%m-%d %T') AS CURRENT_HOUR
+	,CURRENT_TIME
+	,TIME_FORMAT(CURRENT_TIME, '%H')
+    ,ADDTIME(STR_TO_DATE(CONCAT(CAST(CURRENT_DATE AS CHAR(12)),' ',CAST(HOUR(CURRENT_TIME) AS CHAR),':00:00'),'%Y-%m-%d %T'),'-01:00:00') AS TIME_ADD
+    ,STR_TO_DATE(CONCAT(CAST(CURRENT_DATE AS CHAR(12)),' ',CAST(HOUR(CURRENT_TIME) AS CHAR),':00:00'),'%Y-%m-%d %T') AS LAG_TIME_END
+,CURRENT_TIMESTAMP
+;
+
+SELECT CURRENT_DATE;
+-- || CAST(HOUR(CURRENT_TIME) AS VARCHAR(2));
+
+SELECT *
+FROM mysql.time_zone_name
+;
+
+
+SELECT 
+	STR_TO_DATE(CONCAT(CAST(CURRENT_DATE AS CHAR(12)),' ',CAST(HOUR(CURRENT_TIME) AS CHAR),':00:00'),'%Y-%m-%d %T') AS CURRENT_DATE_HOUR
+	,CONCAT(CAST(CURRENT_DATE AS CHAR(12)),' ',CAST(HOUR(CURRENT_TIME) AS CHAR),':00:00') AS CURRENT_DATE_HOUR_TX
+;
+
+SELECT CURRENT_DATE
+;
