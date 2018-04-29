@@ -4,11 +4,28 @@
 import mysqlcandydb
 import datetime
 import logging
+import base64
 import plotly.graph_objs as go
+
 
 class generateCandyPlots:
     
 #    def __init__(self):       
+
+    def getKPIArrow(self, trendString):
+        if trendString == 'Down':
+            image_path = '/home/pi/COBI_CandyTrack/assets/red_arrow_down.png'
+        elif trendString == "Same":
+            image_path = '/home/pi/COBI_CandyTrack/assets/yellow_arrow_right.png'
+        elif trendString == "Up":
+            image_path = '/home/pi/COBI_CandyTrack/assets/green_arrow_up.png'
+        else:
+            image_path = '/home/pi/COBI_CandyTrack/assets/black_arrow_down.png'
+#            image_path = '/home/pi/COBI_CandyTrack/assets/black_arrow_down.png'
+                    
+        encoded_img = base64.b64encode(open(image_path, 'rb').read())
+        return encoded_img
+                
     
     def fetchHourlyTrend(self):
         sqlstatement = """SELECT 
@@ -50,6 +67,7 @@ class generateCandyPlots:
         previousHourCandyAmt = lastHourCandyData[0].get('lagHourCandyCount')
         currentHourCandyAmt = currentHourCandyData[0].get('currentHourCandyCount')
         hourlyTrend = ""
+        lagHourCandyRatio = 0        
         
         if (previousHourCandyAmt != 0 and currentHourCandyAmt != 0):
             lagHourCandyRatio = (currentHourCandyAmt / previousHourCandyAmt)
@@ -132,11 +150,13 @@ class generateCandyPlots:
     
     def createCandyHeatmap(self, date_from, date_to, start_hour, end_hour):
         try:
-            
+             
             if start_hour < 0 and start_hour > 23:
                 raise
             elif end_hour < 0 and start_hour > 23:
                 raise
+            
+            timedelta_days = date_from - date_to
             
         except Exception as e:
             logging.exception("Please fix your input arguments.  Real dates and times are required.")
@@ -305,14 +325,17 @@ class generateCandyPlots:
                 z=heatmap_z,
                 x=formattedDaysOfWeek,
                 y=reportHours,
-                colorscale='Portland',
+                colorscale='Viridis',
+                colorbar = dict(
+                        title = 'Pieces of Candy'
+                        )
             )
         ]
-        
+
         layout = go.Layout(
-            title='Candy Activity Over Time',
-            xaxis = dict(ticks='', nticks=36),
-            yaxis = dict(ticks='' )
+            title=('Candy Activity Within Past ' + str(timedelta_days)),
+            xaxis = dict(ticks='', nticks=36, title='Timeline (Days)'),
+            yaxis = dict(ticks='', title='Hour of Day (HH24)')
         )
         
         fig = go.Figure(data=data, layout=layout)
