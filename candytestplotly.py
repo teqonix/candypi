@@ -92,7 +92,7 @@ class generateCandyPlots:
     
     def fetchDailyTrend(self):
         sqlstatement = """SELECT 
-                            SUM(candycount_nb) AS currentDayCandyCount
+                            CASE WHEN SUM(candycount_nb) IS NULL THEN 0 ELSE SUM(candycount_nb) END AS currentDayCandyCount
                             ,CURRENT_DATE AS startOfCurrentDay
                             ,CURRENT_TIMESTAMP AS queryCurrentTime
                         FROM candydb.candycounts cc
@@ -111,7 +111,7 @@ class generateCandyPlots:
             currentDayCandyData = cursor.fetchall()
         
         sqlstatement = """SELECT 
-                            SUM(candycount_nb) AS lagDayCandyCount
+                            CASE WHEN SUM(candycount_nb) IS NULL THEN 0 ELSE SUM(candycount_nb) END AS lagDayCandyCount 
                             ,ADDDATE(CURRENT_DATE, INTERVAL -1 DAY) AS startOfPreviousDay
                             ,ADDDATE(CURRENT_TIMESTAMP, INTERVAL -1 DAY) AS endOfPreviousDayTrend
                         FROM candydb.candycounts cc
@@ -126,6 +126,7 @@ class generateCandyPlots:
         previousDayCandyAmt = lastDayCandyData[0].get('lagDayCandyCount')
         currentDayCandyAmt = currentDayCandyData[0].get('currentDayCandyCount')
         hourlyTrend = ""
+        lagDayCandyRatio = 0
         
         if (previousDayCandyAmt != 0 and currentDayCandyAmt != 0):
             lagDayCandyRatio = (currentDayCandyAmt / previousDayCandyAmt)

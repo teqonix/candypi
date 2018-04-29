@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from plotly.offline import plot
 from candytestplotly import generateCandyPlots
 import datetime
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 
-app = dash.Dash()
-app.css.config.serve_locally = True
-app.scripts.config.serve_locally = True
-
-markdown_text = '''
-## COBI Candy Tracker
-This is a dashboard showing our candy usage in the Business Intelligence Department.  Refreshed every 5 minutes.'''
-
-if __name__ == '__main__':
+def create_layout():
     candyPlotter = generateCandyPlots()
+    print("Creating dash layout..")
+    markdown_text = '''
+# COBI Candy Tracker  
+''' + str(datetime.datetime.now())
+#'''
+#This is a dashboard showing our candy usage in the Business Intelligence Department.  Refreshed every 5 minutes.'''
 
     end_date=datetime.datetime.now()
     start_date= (end_date + datetime.timedelta(days=-9))
@@ -25,7 +22,7 @@ if __name__ == '__main__':
     candyweeklyusage = candyPlotter.createCandyWeeklyBarChart(9)
 
     candyHourlyTrend = candyPlotter.fetchHourlyTrend()
-    candyDayTrend = candyPlotter.fetchDailyTrend()
+    candyDayTrend = candyPlotter.fetchDailyTrend() 
     
     hourlyTrendImg = candyPlotter.getKPIArrow(candyHourlyTrend.get("Hourly Trend"))
     hourlyMarkdownText = ("""
@@ -44,14 +41,15 @@ if __name__ == '__main__':
         
     dailyTrendImg = candyPlotter.getKPIArrow(candyDayTrend.get("Daily Trend"))
     
-    app.layout = html.Div(children=[    
+    dashboard_content = html.Div(children=[    
         html.Div(children=[
-                   dcc.Markdown(children=markdown_text),
-                   html.Div(children=
+                   html.Div(children=[
                         dcc.Graph(
                                 id='weekly candy activity'
                                 ,figure = candyheatmap
                                 )
+                        ,dcc.Markdown(children=markdown_text)
+                    ]
                     ,style={'width': '60%', 'display': 'inline-block'}
                     )
                  ,html.Div(children=[
@@ -61,7 +59,7 @@ if __name__ == '__main__':
                                              figure=candyweeklyusage
                                              )
                                     ) 
-                    ],style={'width': '25%', 'display': 'inline-block'})
+                    ],style={'width': '25%', 'display': 'inline-block'}) 
                  ,html.Div(children=[
                           html.Div(children=[
                                   dcc.Markdown(children=dailyMarkdownText),
@@ -74,8 +72,17 @@ if __name__ == '__main__':
                           ],style={'width': '15%', 'display': 'inline-block'})
                 ])
     
-    ]) 
+    ])
+    
+    return dashboard_content
     
     #plot(candyheatmap, filename='candy-heatmap.html')
     #plot(candyweeklyusage, filename='candyweeklyusage.html')
-    app.run_server(debug=True)
+
+app = dash.Dash()
+#app.css.config.serve_locally = True
+#app.scripts.config.serve_locally = True
+app.layout = create_layout
+
+if __name__ == '__main__':
+    app.run_server()

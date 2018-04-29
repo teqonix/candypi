@@ -103,5 +103,22 @@ SELECT
 	,CONCAT(CAST(CURRENT_DATE AS CHAR(12)),' ',CAST(HOUR(CURRENT_TIME) AS CHAR),':00:00') AS CURRENT_DATE_HOUR_TX
 ;
 
-SELECT CURRENT_DATE
+SELECT *
+FROM candycounts
 ;
+
+
+INSERT INTO `candydb`.`candycounts`
+(
+`candyconsumption_date_ik`,
+`candylog_type_ik`,
+`candycount_nb`,
+`logged_date`)
+VALUES
+(
+20180428,
+1,
+3,
+CURRENT_TIMESTAMP);
+
+COMMIT;
