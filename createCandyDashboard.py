@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from candytestplotly import generateCandyPlots
+from generatesampledata import candySampleData
 import datetime
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+from dash.dependencies import Input, Output
 
-def getDashboardContent(candyPlotter, start_date, end_date):
-    candyheatmap = candyPlotter.createCandyHeatmap(date_from=start_date, date_to=end_date, start_hour=6, end_hour=18)
-    candyweeklyusage = candyPlotter.createCandyWeeklyBarChart(9)
+def getDashboardContent(start_date, end_date):
+    contentCandyPlotter = generateCandyPlots()
+    candyheatmap = contentCandyPlotter.createCandyHeatmap(date_from=start_date, date_to=end_date, start_hour=6, end_hour=18)
+    candyweeklyusage = contentCandyPlotter.createCandyWeeklyBarChart(9)
 
-    candyHourlyTrend = candyPlotter.fetchHourlyTrend()
-    candyDayTrend = candyPlotter.fetchDailyTrend() 
+    candyHourlyTrend = contentCandyPlotter.fetchHourlyTrend()
+    candyDayTrend = contentCandyPlotter.fetchDailyTrend()
     
-    hourlyTrendImg = candyPlotter.getKPIArrow(candyHourlyTrend.get("Hourly Trend"))
+    hourlyTrendImg = contentCandyPlotter.getKPIArrow(candyHourlyTrend.get("Hourly Trend"))
     hourlyMarkdownText = ("""
 ## Hourly Trend:
 **Summary:** """ + candyHourlyTrend.get("Hourly Trend") + """  
@@ -22,7 +25,7 @@ def getDashboardContent(candyPlotter, start_date, end_date):
     )
     
                 
-    dailyTrendImg = candyPlotter.getKPIArrow(candyDayTrend.get("Daily Trend"))
+    dailyTrendImg = contentCandyPlotter.getKPIArrow(candyDayTrend.get("Daily Trend"))
     dailyMarkdownText = ("""
 ## Daily Trend:
 **Summary:** """ + candyDayTrend.get("Daily Trend") + """  
@@ -42,7 +45,6 @@ def getDashboardContent(candyPlotter, start_date, end_date):
     
 
 def create_layout():
-    candyPlotter = generateCandyPlots()
     print("Creating dash layout..")
     markdown_text = '''
 # COBI Candy Tracker  
@@ -53,38 +55,45 @@ Last refreshed on: ''' + str(datetime.datetime.now())
     end_date=datetime.datetime.now()
     start_date= (end_date + datetime.timedelta(days=-9))
 
-    dashboardData = getDashboardContent(candyPlotter, start_date, end_date)
+    dashboardData = getDashboardContent(start_date, end_date)
         
     dashboard_content = html.Div(children=[    
         html.Div(children=[
                    html.Div(children=[
                         dcc.Graph(
-                                id='weekly candy activity'
-                                ,figure = dashboardData[7]
+                                id='heatmap_chart'
+                                ,figure = dashboardData[6]
                                 )
-                        ,dcc.Markdown(children=markdown_text)
+                        ,dcc.Markdown(id='welcome_text'
+                                      ,children=markdown_text
+                                )
                     ]
                     ,style={'width': '60%', 'display': 'inline-block'}
                     )
                  ,html.Div(children=[
                          html.Div(children=
                                      dcc.Graph(     
-                                             id='heatmap',
-                                             figure=dashboardData[6]
+                                             id='bar_chart',
+                                             figure=dashboardData[7]
                                              )
                                     ) 
                     ],style={'width': '25%', 'display': 'inline-block'}) 
                  ,html.Div(children=[
-                          html.Div(children=[
+                          html.Div(id='daily_trend',children=[
                                   dcc.Markdown(children=dashboardData[5]), #daily markdown text
                                   html.Img(src='data:image/png;base64,{}'.format(dashboardData[4].decode()),style={'width': '150px', 'height': 'auto'})
                                   ])
-                          ,html.Div(children=[
+                          ,html.Div(id='hourly_trend',children=[
                                   dcc.Markdown(children=dashboardData[2]), #hourly markdown text
                                   html.Img(src='data:image/png;base64,{}'.format(dashboardData[1].decode()),style={'width': '150px', 'height': 'auto'})
                                   ])
                           ],style={'width': '15%', 'display': 'inline-block'})
-                ])
+                ,dcc.Interval(
+                            id='interval-component',
+                            interval=15*1000, # in milliseconds
+                            n_intervals=0
+                )
+        ])
     
     ])
     
@@ -93,10 +102,60 @@ Last refreshed on: ''' + str(datetime.datetime.now())
     #plot(candyheatmap, filename='candy-heatmap.html')
     #plot(candyweeklyusage, filename='candyweeklyusage.html')
 
-app = dash.Dash()
+app = dash.Dash(__name__)
 #app.css.config.serve_locally = True
 #app.scripts.config.serve_locally = True
 app.layout = create_layout
 
-if __name__ == '__main__':
+@app.callback(Output('welcome_text', 'children'),
+              [Input('interval-component', 'n_intervals')])
+def update_welcome_text(n):
+    new_welcome_text = '''
+# COBI Candy Tracker  
+Last refreshed on: ''' + str(datetime.datetime.now()) + ''' for interval ''' + str(n)
+    return [new_welcome_text]
+
+@app.callback(Output('heatmap_chart', 'figure'),
+              [Input('interval-component', 'n_intervals')])
+def update_heatmap(n):
+    end_date=datetime.datetime.now()
+    start_date= (end_date + datetime.timedelta(days=-9)) 
+    new_heatmap = getDashboardContent(start_date, end_date)
+    return new_heatmap[6]
+
+
+@app.callback(Output('bar_chart', 'figure'),
+              [Input('interval-component', 'n_intervals')])
+def update_bar_chart(n):
+    end_date=datetime.datetime.now()
+    start_date= (end_date + datetime.timedelta(days=-9)) 
+    new_barchart = getDashboardContent(start_date, end_date)
+    return new_barchart[7]
+
+@app.callback(Output('hourly_trend', 'children'),
+              [Input('interval-component', 'n_intervals')])
+def update_daily_trend(n):
+    end_date=datetime.datetime.now()
+    start_date= (end_date + datetime.timedelta(days=-9)) 
+    trend_data = getDashboardContent(start_date, end_date)
+    daily_trend = [ dcc.Markdown(children=trend_data[5]), #hourly markdown text
+                     html.Img(src='data:image/png;base64,{}'.format(trend_data[4].decode()),style={'width': '125px', 'height': 'auto'})
+                    ]
+    return daily_trend
+
+@app.callback(Output('daily_trend', 'children'),
+              [Input('interval-component', 'n_intervals')])
+def update_hourly_trend(n):
+    end_date=datetime.datetime.now()
+    start_date= (end_date + datetime.timedelta(days=-9))
+    trend_data = getDashboardContent(start_date, end_date)
+    hourly_trend = [ dcc.Markdown(children=trend_data[2]), #hourly markdown text
+                     html.Img(src='data:image/png;base64,{}'.format(trend_data[1].decode()),style={'width': '125px', 'height': 'auto'})
+                    ]
+    
+    data_generator = candySampleData()
+    data_generator.createExampleData(60, 32, 20180301)
+    return hourly_trend
+
+if __name__ == '__main__':d
     app.run_server()
