@@ -157,5 +157,5 @@ def update_hourly_trend(n):
     data_generator.createExampleData(60, 32, 20180301)
     return hourly_trend
 
-if __name__ == '__main__':d
+if __name__ == '__main__':
     app.run_server()
