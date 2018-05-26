@@ -104,8 +104,8 @@ Last refreshed on: ''' + str(datetime.datetime.now())
 
 def setup_app():
     app = dash.Dash(__name__)
-    #app.css.config.serve_locally = True
-    #app.scripts.config.serve_locally = True
+    app.css.config.serve_locally = True
+    app.scripts.config.serve_locally = True
     app.layout = create_layout
 
     @app.callback(Output('welcome_text', 'children'),

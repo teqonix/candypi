@@ -4,4 +4,4 @@
 from generatesampledata import candySampleData
 
 data_generator = candySampleData()
-data_generator.createExampleData(120, 45, 20180301)
+data_generator.createExampleData(daysOfSampleData=4,maxRowsPerDay=567, startDateInteger=20180521, truncateDB=False)

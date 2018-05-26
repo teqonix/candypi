@@ -49,14 +49,15 @@ class candySampleData:
 
 #syntax: STR_TO_DATE('2018,01,01, 17:23:12', '%Y,%m,%d,%T')
      
-    def createExampleData(self, daysOfSampleData, maxRowsPerDay, startDateInteger):
+    def createExampleData(self, daysOfSampleData, maxRowsPerDay, startDateInteger, truncateDB = True):
         exampleData = self.createSampleData(numberOfDays = daysOfSampleData, maxEntriesPerDay = maxRowsPerDay, startDateInt = startDateInteger)
         
         mysql = self.connectToDB()
         
         with mysql.cursor() as cursor:
-            sql = "TRUNCATE TABLE candydb.candycounts"
-            cursor.execute(sql)
+            if truncateDB == True:
+                sql = "TRUNCATE TABLE candydb.candycounts" 
+                cursor.execute(sql)
             for exampleRow in (exampleData):    
                 sql = exampleRow["SQL Statement"]
     #            print(sql)
