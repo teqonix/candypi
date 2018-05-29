@@ -16,6 +16,7 @@ def getDashboardContent(start_date, end_date):
     candyHourlyTrend = contentCandyPlotter.fetchHourlyTrend()
     candyDayTrend = contentCandyPlotter.fetchDailyTrend()
     
+    dashboardAssets = contentCandyPlotter.getDashboardAssets()
     hourlyTrendImg = contentCandyPlotter.getKPIArrow(candyHourlyTrend.get("Hourly Trend"))
     hourlyMarkdownText = ("""
 ## Hourly Trend:
@@ -41,6 +42,7 @@ def getDashboardContent(start_date, end_date):
             , dailyMarkdownText #5 
             , candyheatmap #6 
             , candyweeklyusage #7 
+            , dashboardAssets #8
             ]
     
 
@@ -56,9 +58,12 @@ Last refreshed on: ''' + str(datetime.datetime.now())
     start_date= (end_date + datetime.timedelta(days=-9))
 
     dashboardData = getDashboardContent(start_date, end_date)
-        
-    dashboard_content = html.Div(children=[    
+    
+    dashboard_content = html.Div(children=[
         html.Div(children=[
+                html.Img(src='data:image/png;base64,{}'.format(dashboardData[8][0].decode()),style={'width': '400px', 'height': 'auto'})
+        ])
+        ,html.Div(children=[
                    html.Div(children=[
                         dcc.Graph(
                                 id='heatmap_chart'

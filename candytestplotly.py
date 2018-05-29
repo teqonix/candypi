@@ -12,6 +12,11 @@ class generateCandyPlots:
     
 #    def __init__(self):       
 
+    def getDashboardAssets(self):
+        header_image_path = '/home/pi/COBI_CandyTrack/assets/candytracker_header.png'
+        header_image = base64.b64encode(open(header_image_path, 'rb').read())
+        return [header_image]
+    
     def getKPIArrow(self, trendString):
         if trendString == 'Down':
             image_path = '/home/pi/COBI_CandyTrack/assets/red_arrow_down.png'
