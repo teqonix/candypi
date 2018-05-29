@@ -49,7 +49,8 @@ def getDashboardContent(start_date, end_date):
 def create_layout():
     print("Creating dash layout..")
     markdown_text = '''
-# COBI Candy Tracker  
+COBI Candy Tracker by Travis Roesner
+
 Last refreshed on: ''' + str(datetime.datetime.now())
 #'''
 #This is a dashboard showing our candy usage in the Business Intelligence Department.  Refreshed every 5 minutes.'''
@@ -116,9 +117,11 @@ def setup_app():
     @app.callback(Output('welcome_text', 'children'),
                   [Input('interval-component', 'n_intervals')])
     def update_welcome_text(n):
-        new_welcome_text = '''
-    # COBI Candy Tracker  
+        new_welcome_text = dcc.Markdown(children='''
+    COBI Candy Tracker by Travis Roesner
+    
     Last refreshed on: ''' + str(datetime.datetime.now()) + ''' for interval ''' + str(n)
+        )
         return [new_welcome_text]
 
     @app.callback(Output('heatmap_chart', 'figure'),
