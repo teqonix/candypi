@@ -118,7 +118,7 @@ def runWebBrowser():
         for x in range(0,600):
             x = x + 1
             time.sleep(1)
-            print("Firefox refresh loop second " + str(x) + " of 600")
+            #print("Firefox refresh loop second " + str(x) + " of 600")
         driver.refresh()
     
 def connectToDB():
@@ -135,7 +135,7 @@ def connectToDB():
 
 
 #This has all the code needed to detect when the button has been pressed and released
-GPIO.add_event_detect(6, GPIO.RISING, callback=candyButtonPressed, bouncetime=200)
+GPIO.add_event_detect(6, GPIO.RISING, callback=candyButtonPressed, bouncetime=30000)
 lcd.set_contrast(50)
 resetScreen(backlight,lcd)
 
