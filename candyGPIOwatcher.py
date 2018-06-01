@@ -16,9 +16,10 @@ from selenium import webdriver
 #Set up GPIO for button press event:
 GPIO.setmode(GPIO.BCM)  
 GPIO.setup(6, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+delay_in_seconds=30
 
 def lcdRainbowBackgroundThread():
-    lcd_thread = threading.Thread(name="lcdRainbow", target=lcdRainbow)
+    lcd_thread = threading.Thread(name="lcdRainbow", target=lcdRainbow, args=(delay_in_seconds,))
     lcd_thread.start()
 
 def firefoxBackgroundThread():
@@ -58,20 +59,32 @@ def resetScreen(lcdBacklight, lcd):
     lcd.set_cursor_position(lcd_cursor_x, 2)
     lcd.write(cpuUsageString)
 
-def lcdRainbow():
+def lcdRainbow(delay_in_seconds):
     lcd.clear()
-    lcd.set_cursor_position(0, 1)
-    lcd.write("IT'S CANDY TIME!")
-    for x in range(0,360):
-        backlight.sweep((x % 360) / 360.0)
-    lcd.clear()
+    start_time = datetime.datetime.now()
+    s = 1
+    while s > 0:
+        current_time = datetime.datetime.now()
+        delta = (current_time - start_time)
+        s = delta.total_seconds()
+        lcd.set_cursor_position(0, 0)
+        lcd.write("IT'S CANDY TIME!")
+        lcd.set_cursor_position(0, 1)
+        lcd.write("You have " + str((delay_in_seconds - s)))
+        lcd.set_cursor_position(0, 2)
+        lcd.write("seconds left-->")
+        for x in range(0,360):
+            backlight.sweep((x % 360) / 360.0)
+        lcd.clear()
+        print(str(delta))
+        if s > delay_in_seconds:
+            s = -1 #exit loop
     lcd.set_cursor_position(1, 1)
     lcd.write("CANDY TRACKER")
-    print("LCD Updates Complete")
     resetScreen(backlight,lcd)
 
 def candyButtonPressed(channel):
-    print("We got ourselves a live one here!" + str(random.randint(0,50)))
+    print("Candy activity detected!! randint():" + str(random.randint(0,50)))
     activeCandyButtonThreads = threading.active_count()
     current_threads = threading.enumerate()
 
@@ -135,7 +148,7 @@ def connectToDB():
 
 
 #This has all the code needed to detect when the button has been pressed and released
-GPIO.add_event_detect(6, GPIO.RISING, callback=candyButtonPressed, bouncetime=30000)
+GPIO.add_event_detect(6, GPIO.RISING, callback=candyButtonPressed, bouncetime=(delay_in_seconds*1000))
 lcd.set_contrast(50)
 resetScreen(backlight,lcd)
 

@@ -62,7 +62,7 @@ Last refreshed on: ''' + str(datetime.datetime.now())
     
     dashboard_content = html.Div(children=[
         html.Div(children=[
-                html.Img(src='data:image/png;base64,{}'.format(dashboardData[8][0].decode()),style={'width': '400px', 'height': 'auto'})
+                html.Img(src='data:image/png;base64,{}'.format(dashboardData[8][0].decode()),style={'width': '925px', 'height': 'auto'})
         ])
         ,html.Div(children=[
                    html.Div(children=[
@@ -117,11 +117,10 @@ def setup_app():
     @app.callback(Output('welcome_text', 'children'),
                   [Input('interval-component', 'n_intervals')])
     def update_welcome_text(n):
-        new_welcome_text = dcc.Markdown(children='''
+        new_welcome_text = '''
     COBI Candy Tracker by Travis Roesner
     
     Last refreshed on: ''' + str(datetime.datetime.now()) + ''' for interval ''' + str(n)
-        )
         return [new_welcome_text]
 
     @app.callback(Output('heatmap_chart', 'figure'),
